@@ -20,6 +20,8 @@ from urllib.parse import unquote_plus
 from distutils.util import strtobool
 
 import boto3
+import sentry_sdk
+from sentry_sdk.integrations.aws_lambda import AwsLambdaIntegration
 
 import clamav
 import metrics
@@ -40,6 +42,13 @@ from common import AV_TIMESTAMP_METADATA
 from common import create_dir
 from common import get_timestamp
 
+
+if "SENTRY_DSN" in os.environ:
+    sentry_sdk.init(
+        dsn=os.environ["SENTRY_DSN"],
+        integrations=[AwsLambdaIntegration()],
+        traces_sample_rate=float(os.environ.get("SENTRY_SAMPLE_RATE", "0.0"))
+    )
 
 def event_object(event, event_source="s3"):
 

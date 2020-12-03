@@ -16,6 +16,8 @@
 import os
 
 import boto3
+import sentry_sdk
+from sentry_sdk.integrations.aws_lambda import AwsLambdaIntegration
 
 import clamav
 from common import AV_DEFINITION_PATH
@@ -23,6 +25,13 @@ from common import AV_DEFINITION_S3_BUCKET
 from common import AV_DEFINITION_S3_PREFIX
 from common import CLAMAVLIB_PATH
 from common import get_timestamp
+
+if "SENTRY_DSN" in os.environ:
+    sentry_sdk.init(
+        dsn=os.environ["SENTRY_DSN"],
+        integrations=[AwsLambdaIntegration()],
+        traces_sample_rate=float(os.environ.get("SENTRY_SAMPLE_RATE", "0.0"))
+    )
 
 
 def lambda_handler(event, context):
