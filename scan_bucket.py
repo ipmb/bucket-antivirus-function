@@ -94,6 +94,9 @@ def main(lambda_function_name, s3_bucket_name, prefix="", limit=0):
         if limit and count >= limit:
             break
         for object in page.get("Contents", []):
+            if object["Size"] == 0:
+                log.debug("Skipping 0 length object s3://%s/%s", s3_bucket_name, object["Key"])
+                continue
             if object_previously_scanned(s3_client, s3_bucket_name, object["Key"]):
                 log.debug("Skipping previously scanned object s3://%s/%s", s3_bucket_name, object["Key"])
                 continue
