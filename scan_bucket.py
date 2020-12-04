@@ -17,6 +17,8 @@
 
 import argparse
 import json
+import logging
+import os
 import sys
 
 import boto3
@@ -24,6 +26,11 @@ import boto3
 from common import AV_STATUS_METADATA
 from common import AV_TIMESTAMP_METADATA
 
+LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO").upper()
+logging.basicConfig(level=getattr(logging, LOG_LEVEL))
+logging.getLogger("botocore").setLevel(logging.WARNING)
+logging.getLogger("urllib3").setLevel(logging.WARNING)
+log = logging.getLogger(__name__)
 
 
 # Determine if an object has been previously scanned for viruses
@@ -41,7 +48,7 @@ def object_previously_scanned(s3_client, s3_bucket_name, key_name):
 # Skip any objects that have already been scanned
 def scan_object(lambda_client, lambda_function_name, s3_bucket_name, key_name):
 
-    print("Scanning: {}/{}".format(s3_bucket_name, key_name))
+    log.info("Scanning s3://%s/%s", s3_bucket_name, key_name)
     s3_event = format_s3_event(s3_bucket_name, key_name)
     lambda_invoke_result = lambda_client.invoke(
         FunctionName=lambda_function_name,
@@ -49,7 +56,7 @@ def scan_object(lambda_client, lambda_function_name, s3_bucket_name, key_name):
         Payload=json.dumps(s3_event),
     )
     if lambda_invoke_result["ResponseMetadata"]["HTTPStatusCode"] != 202:
-        print("Error invoking lambda: {}".format(lambda_invoke_result))
+        log.error("Error invoking lambda: %s", lambda_invoke_result)
 
 
 # Format an S3 Event to use when invoking the lambda function
@@ -69,7 +76,7 @@ def main(lambda_function_name, s3_bucket_name, limit):
     try:
         lambda_client.get_function(FunctionName=lambda_function_name)
     except Exception:
-        print("Lambda Function '{}' does not exist".format(lambda_function_name))
+        log.error("Lambda Function '%s' does not exist", lambda_function_name)
         sys.exit(1)
 
     # Verify the S3 bucket exists
@@ -88,6 +95,7 @@ def main(lambda_function_name, s3_bucket_name, limit):
             break
         for object in page["Contents"]:
             if object_previously_scanned(s3_client, s3_bucket_name, object["Key"]):
+                log.debug("Skipping previously scanned object s3://%s/%s", s3_bucket_name, object["Key"])
                 continue
             scan_object(lambda_client, lambda_function_name, s3_bucket_name, object["Key"])
             count += 1
