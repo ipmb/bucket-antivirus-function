@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-AMZ_LINUX_VERSION:=2
 current_dir := $(shell pwd)
 container_dir := /opt/app
 circleci := ${CIRCLECI}
@@ -35,8 +34,6 @@ clean:  ## Clean build artifacts
 .PHONY: archive
 archive: clean  ## Create the archive for AWS lambda
 	docker build -t bucket-antivirus-function:latest .
-	mkdir -p ./build/
-	docker run -v $(current_dir)/build:/opt/mount --rm --entrypoint cp bucket-antivirus-function:latest /opt/app/build/lambda.zip /opt/mount/lambda.zip
 
 .PHONY: pre_commit_install  ## Ensure that pre-commit hook is installed and kept up to date
 pre_commit_install: .git/hooks/pre-commit ## Ensure pre-commit is installed
@@ -58,9 +55,9 @@ coverage: clean  ## Run python tests with coverage
 	nosetests --with-coverage
 
 .PHONY: scan
-scan: ./build/lambda.zip ## Run scan function locally
+scan: ## Run scan function locally
 	scripts/run-scan-lambda $(TEST_BUCKET) $(TEST_KEY)
 
 .PHONY: update
-update: ./build/lambda.zip ## Run update function locally
+update: ## Run update function locally
 	scripts/run-update-lambda
