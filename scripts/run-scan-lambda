@@ -21,7 +21,7 @@ aws s3 ls "s3://${BUCKET}/${KEY}"
 
 NAME="antivirus-scan"
 
-docker run --rm \
+docker run --rm -d \
   -v "$(pwd):/var/task" \
   -e AV_DEFINITION_S3_BUCKET \
   -e AV_DEFINITION_S3_PREFIX \
