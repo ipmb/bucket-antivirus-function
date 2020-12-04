@@ -70,7 +70,7 @@ def format_s3_event(s3_bucket_name, key_name):
     return s3_event
 
 
-def main(lambda_function_name, s3_bucket_name, limit):
+def main(lambda_function_name, s3_bucket_name, prefix="", limit=0):
     # Verify the lambda exists
     lambda_client = boto3.client("lambda")
     try:
@@ -90,7 +90,7 @@ def main(lambda_function_name, s3_bucket_name, limit):
     # Scan the objects in the bucket
     s3_paginator = s3_client.get_paginator("list_objects_v2")
     count = 0
-    for page in s3_paginator.paginate(Bucket=s3_bucket_name):
+    for page in s3_paginator.paginate(Bucket=s3_bucket_name, Prefix=prefix):
         if limit and count >= limit:
             break
         for object in page["Contents"]:
@@ -114,7 +114,10 @@ if __name__ == "__main__":
     parser.add_argument(
         "--s3-bucket-name", required=True, help="The name of the S3 bucket to scan"
     )
+    parser.add_argument(
+        "--prefix", required=True, help="Prefix of objects to scan"
+    )
     parser.add_argument("--limit", type=int, help="The number of records to limit to")
     args = parser.parse_args()
 
-    main(args.lambda_function_name, args.s3_bucket_name, args.limit)
+    main(args.lambda_function_name, args.s3_bucket_name, args.prefix, args.limit)
