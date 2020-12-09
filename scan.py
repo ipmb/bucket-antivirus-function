@@ -21,6 +21,7 @@ from distutils.util import strtobool
 
 import boto3
 import sentry_sdk
+from botocore.exceptions import ClientError
 from sentry_sdk.integrations.aws_lambda import AwsLambdaIntegration
 
 import clamav
@@ -230,7 +231,23 @@ def lambda_handler(event, context):
 
     file_path = get_local_path(s3_object, "/tmp")
     create_dir(os.path.dirname(file_path))
-    s3_object.download_file(file_path)
+    try:
+        s3_object.download_file(file_path)
+    except ClientError:
+        # Check if file is no longer there or if this is a real error
+        object_exists = (
+            s3.list_objects_v2(Bucket=s3_object.bucket_name, Prefix=s3_object.key)[
+                "KeyCount"
+            ]
+            > 0
+        )
+        if object_exists:
+            raise
+        else:
+            print(
+                "s3://%s/%s no longer exists" % (s3_object.bucket_name, s3_object.key)
+            )
+            return
 
     to_download = clamav.update_defs_from_s3(
         s3_client, AV_DEFINITION_S3_BUCKET, AV_DEFINITION_S3_PREFIX
