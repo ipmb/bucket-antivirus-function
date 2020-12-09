@@ -48,8 +48,9 @@ if "SENTRY_DSN" in os.environ:
     sentry_sdk.init(
         dsn=os.environ["SENTRY_DSN"],
         integrations=[AwsLambdaIntegration()],
-        traces_sample_rate=float(os.environ.get("SENTRY_SAMPLE_RATE", "0.0"))
+        traces_sample_rate=float(os.environ.get("SENTRY_SAMPLE_RATE", "0.0")),
     )
+
 
 def event_object(event, event_source="s3"):
 
