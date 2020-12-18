@@ -63,7 +63,14 @@ def get_timestamp():
 
 
 def setup_logging():
-    LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO").upper()
-    logging.basicConfig(level=getattr(logging, LOG_LEVEL))
-    logging.getLogger("botocore").setLevel(logging.WARNING)
-    logging.getLogger("urllib3").setLevel(logging.WARNING)
+    level = os.environ.get("LOG_LEVEL", "INFO").upper()
+    if len(logging.getLogger().handlers) > 0:
+        # The Lambda environment pre-configures a handler logging to stderr.
+        # If a handler is already configured,
+        # `.basicConfig` does not execute. Thus we set the level directly.
+        logging.getLogger().setLevel(level)
+    else:
+        logging.basicConfig(level=level)
+    # quiet noisy modules
+    for module in ["boto3", "botocore", "urllib3"]:
+        logging.getLogger(module).setLevel("WARNING")
