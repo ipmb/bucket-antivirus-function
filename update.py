@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
 import os
 
 import boto3
@@ -25,6 +26,10 @@ from common import AV_DEFINITION_S3_BUCKET
 from common import AV_DEFINITION_S3_PREFIX
 from common import CLAMAVLIB_PATH
 from common import get_timestamp
+from common import setup_logging
+
+setup_logging()
+log = logging.getLogger(__name__)
 
 if "SENTRY_DSN" in os.environ:
     sentry_sdk.init(

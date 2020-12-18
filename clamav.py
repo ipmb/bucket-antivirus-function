@@ -15,6 +15,7 @@
 
 import datetime
 import hashlib
+import logging
 import os
 import pwd
 import re
@@ -37,6 +38,8 @@ from common import CLAMSCAN_PATH
 from common import FRESHCLAM_PATH
 from common import create_dir
 
+
+log = logging.getLogger(__name__)
 
 RE_SEARCH_DIR = r"SEARCH_DIR\(\"=([A-z0-9\/\-_]*)\"\)"
 
@@ -130,7 +133,7 @@ def update_defs_from_freshclam(path, library_path=""):
     output = fc_proc.communicate()[0]
     print("freshclam output:\n%s" % output)
     if fc_proc.returncode != 0:
-        print("Unexpected exit code from freshclam: %s." % fc_proc.returncode)
+        log.error("Unexpected exit code from freshclam: %s.", fc_proc.returncode)
     return fc_proc.returncode
 
 
@@ -206,5 +209,5 @@ def scan_file(path):
         return AV_STATUS_INFECTED, signature
     else:
         msg = "Unexpected exit code from clamscan: %s.\n" % av_proc.returncode
-        print(msg)
+        log.error("%s", msg)
         raise Exception(msg)
