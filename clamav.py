@@ -119,7 +119,7 @@ def update_defs_from_freshclam(path, library_path=""):
     fc_proc = subprocess.Popen(
         [
             FRESHCLAM_PATH,
-            "--config-file=./bin/freshclam.conf",
+            "--config-file=/etc/freshclam.conf",
             "-u %s" % pwd.getpwuid(os.getuid())[0],
             "--datadir=%s" % path,
         ],
