@@ -63,13 +63,13 @@ def update_defs_from_s3(s3_client, bucket, prefix):
             s3_time = time_from_s3(s3_client, bucket, s3_path)
 
             if s3_best_time is not None and s3_time < s3_best_time:
-                print("Not downloading older file in series: %s" % filename)
+                log.info("Not downloading older file in series: %s", filename)
                 continue
             else:
                 s3_best_time = s3_time
 
             if os.path.exists(local_path) and md5_from_file(local_path) == s3_md5:
-                print("Not downloading %s because local md5 matches s3." % filename)
+                log.info("Not downloading %s because local md5 matches s3.", filename)
                 continue
             if s3_md5:
                 to_download[file_prefix] = {
@@ -89,9 +89,9 @@ def upload_defs_to_s3(s3_client, bucket, prefix, local_path):
                 if local_file_md5 != md5_from_s3_tags(
                     s3_client, bucket, os.path.join(prefix, filename)
                 ):
-                    print(
-                        "Uploading %s to s3://%s"
-                        % (local_file_path, os.path.join(bucket, prefix, filename))
+                    log.info(
+                        "Uploading %s to s3://%s",
+                        local_file_path, os.path.join(bucket, prefix, filename)
                     )
                     s3 = boto3.resource("s3")
                     s3_object = s3.Object(bucket, os.path.join(prefix, filename))
@@ -102,12 +102,12 @@ def upload_defs_to_s3(s3_client, bucket, prefix, local_path):
                         Tagging={"TagSet": [{"Key": "md5", "Value": local_file_md5}]},
                     )
                 else:
-                    print(
-                        "Not uploading %s because md5 on remote matches local."
-                        % filename
+                    log.info(
+                        "Not uploading %s because md5 on remote matches local.",
+                        filename
                     )
             else:
-                print("File does not exist: %s" % filename)
+                log.warning("File does not exist: %s", filename)
 
 
 def update_defs_from_freshclam(path, library_path=""):
@@ -118,7 +118,7 @@ def update_defs_from_freshclam(path, library_path=""):
             ":".join(current_library_search_path()),
             CLAMAVLIB_PATH,
         )
-    print("Starting freshclam with defs in %s." % path)
+    log.info("Starting freshclam with defs in %s.", path)
     fc_proc = subprocess.Popen(
         [
             FRESHCLAM_PATH,
@@ -131,7 +131,7 @@ def update_defs_from_freshclam(path, library_path=""):
         env=fc_env,
     )
     output = fc_proc.communicate()[0]
-    print("freshclam output:\n%s" % output)
+    log.info("freshclam output:\n%s", output)
     if fc_proc.returncode != 0:
         log.error("Unexpected exit code from freshclam: %s.", fc_proc.returncode)
     return fc_proc.returncode
@@ -190,7 +190,7 @@ def scan_output_to_json(output):
 def scan_file(path):
     av_env = os.environ.copy()
     av_env["LD_LIBRARY_PATH"] = CLAMAVLIB_PATH
-    print("Starting clamscan of %s." % path)
+    log.info("Starting clamscan of %s.", path)
     av_proc = subprocess.Popen(
         [CLAMSCAN_PATH, "-v", "-a", "--stdout", "-d", AV_DEFINITION_PATH, path],
         stderr=subprocess.STDOUT,
@@ -198,7 +198,7 @@ def scan_file(path):
         env=av_env,
     )
     output = av_proc.communicate()[0].decode("utf-8", "ignore")
-    print("clamscan output:\n%s" % output)
+    log.info("clamscan output:\n%s", output)
 
     # Turn the output into a data source we can read
     summary = scan_output_to_json(output)

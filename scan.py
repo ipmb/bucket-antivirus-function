@@ -161,7 +161,7 @@ def set_av_metadata(s3_object, scan_result, scan_signature, timestamp):
             raise
         else:
             log.info(
-                "s3://%s/%s no longer exists" % s3_object.bucket_name, s3_object.key
+                "s3://%s/%s no longer exists", s3_object.bucket_name, s3_object.key
             )
             return
 
@@ -265,7 +265,7 @@ def lambda_handler(event, context):
             raise
         else:
             log.info(
-                "s3://%s/%s no longer exists" % s3_object.bucket_name, s3_object.key
+                "s3://%s/%s no longer exists", s3_object.bucket_name, s3_object.key
             )
             return
 

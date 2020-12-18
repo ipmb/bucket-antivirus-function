@@ -82,7 +82,7 @@ def main(s3_bucket_name):
     try:
         s3_client.head_bucket(Bucket=s3_bucket_name)
     except Exception:
-        print("S3 Bucket '{}' does not exist".format(s3_bucket_name))
+        log.error("S3 Bucket '%s' does not exist", s3_bucket_name, exc_info=True)
         sys.exit(1)
 
     # Scan the objects in the bucket

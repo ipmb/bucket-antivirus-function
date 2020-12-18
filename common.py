@@ -45,11 +45,13 @@ AV_DELETE_INFECTED_FILES = os.getenv("AV_DELETE_INFECTED_FILES", "False")
 AV_DEFINITION_FILE_PREFIXES = ["main", "daily", "bytecode"]
 AV_DEFINITION_FILE_SUFFIXES = ["cld", "cvd"]
 
+log = logging.getLogger(__name__)
+
 
 def create_dir(path):
     if not os.path.exists(path):
         try:
-            print("Attempting to create directory %s.\n" % path)
+            log.debug("Attempting to create directory %s.\n", path)
             os.makedirs(path)
         except OSError as exc:
             if exc.errno != errno.EEXIST:
