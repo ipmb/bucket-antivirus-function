@@ -15,6 +15,7 @@
 
 import copy
 import json
+import logging
 import os
 from urllib.parse import unquote_plus
 from distutils.util import strtobool
@@ -44,11 +45,28 @@ from common import create_dir
 from common import get_timestamp
 
 
+LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO").upper()
+logging.basicConfig(level=getattr(logging, LOG_LEVEL))
+logging.getLogger("botocore").setLevel(logging.WARNING)
+logging.getLogger("urllib3").setLevel(logging.WARNING)
+log = logging.getLogger(__name__)
+
+
 if "SENTRY_DSN" in os.environ:
     sentry_sdk.init(
         dsn=os.environ["SENTRY_DSN"],
         integrations=[AwsLambdaIntegration()],
         traces_sample_rate=float(os.environ.get("SENTRY_SAMPLE_RATE", "0.0")),
+    )
+
+
+def object_exists(s3_object):
+    s3 = boto3.client("s3")
+    return (
+        s3.list_objects_v2(Bucket=s3_object.bucket_name, Prefix=s3_object.key)[
+            "KeyCount"
+        ]
+        > 0
     )
 
 
@@ -131,14 +149,24 @@ def set_av_metadata(s3_object, scan_result, scan_signature, timestamp):
     metadata[AV_SIGNATURE_METADATA] = scan_signature
     metadata[AV_STATUS_METADATA] = scan_result
     metadata[AV_TIMESTAMP_METADATA] = timestamp
-    s3_object.copy(
-        {"Bucket": s3_object.bucket_name, "Key": s3_object.key},
-        ExtraArgs={
-            "ContentType": content_type,
-            "Metadata": metadata,
-            "MetadataDirective": "REPLACE",
-        },
-    )
+    try:
+        s3_object.copy(
+            {"Bucket": s3_object.bucket_name, "Key": s3_object.key},
+            ExtraArgs={
+                "ContentType": content_type,
+                "Metadata": metadata,
+                "MetadataDirective": "REPLACE",
+            },
+        )
+    except ClientError:
+        # Check if file is no longer there or if this is a real error
+        if object_exists(s3_object):
+            raise
+        else:
+            log.info(
+                "s3://%s/%s no longer exists" % s3_object.bucket_name, s3_object.key
+            )
+            return
 
 
 def set_av_tags(s3_client, s3_object, scan_result, scan_signature, timestamp):
@@ -236,17 +264,11 @@ def lambda_handler(event, context):
         s3_object.download_file(file_path)
     except ClientError:
         # Check if file is no longer there or if this is a real error
-        object_exists = (
-            s3.list_objects_v2(Bucket=s3_object.bucket_name, Prefix=s3_object.key)[
-                "KeyCount"
-            ]
-            > 0
-        )
-        if object_exists:
+        if object_exists(s3_object):
             raise
         else:
-            print(
-                "s3://%s/%s no longer exists" % (s3_object.bucket_name, s3_object.key)
+            log.info(
+                "s3://%s/%s no longer exists" % s3_object.bucket_name, s3_object.key
             )
             return
 
