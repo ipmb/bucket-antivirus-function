@@ -141,8 +141,16 @@ def delete_s3_object(s3_object):
 
 
 def set_av_metadata(s3_object, scan_result, scan_signature, timestamp):
-    content_type = s3_object.content_type
-    metadata = s3_object.metadata
+    try:
+        content_type = s3_object.content_type
+        metadata = s3_object.metadata
+    except ClientError as e:
+        if e.response["Error"]["Message"] == "Not Found":
+            log.info(
+                "s3://%s/%s no longer exists", s3_object.bucket_name, s3_object.key
+            )
+            return
+        raise
     metadata[AV_SIGNATURE_METADATA] = scan_signature
     metadata[AV_STATUS_METADATA] = scan_result
     metadata[AV_TIMESTAMP_METADATA] = timestamp
